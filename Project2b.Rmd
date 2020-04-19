@@ -1,0 +1,212 @@
+---
+title: "DS6306 Project 2"
+author: "Sabrina Purvis"
+date: "3/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+getwd()
+setwd(dir = "C:/Users/sabrina.purvis/Documents/GitHub/DS-6306-Project2/Data Sets/.")
+
+
+```{r}
+#run necessary libraries
+library(ggplot2)
+library(tidyverse)
+library(shiny)
+library(plotly)
+library(GGally)
+library(e1071)
+library(caret)
+library(glmnet)
+library(plyr)
+library(dplyr)
+library(corrplot)
+library(RCurl)
+library(class)
+library(ggpubr)
+
+```
+
+```{r}
+#read in dataset
+attrition <- read.csv("Data Sets/CaseStudy2-data.csv", header=TRUE)
+attrition.test <- read.csv("Data Sets/CaseStudy2CompSet No Attrition.csv", header=TRUE)
+
+#create second file for salary
+salary <- attrition
+```
+
+```{r}
+#adding empty attrition column **TAKE THIS OUT?
+#attrition.test$Attrition  = ""
+#str(attrition.test)
+```
+
+```{r, cache = TRUE}
+#Run Summary, header & NA checks
+summary(attrition)
+str(attrition)
+sum(is.na(attrition))
+```
+
+```{r}
+#Cleaning up the dataset
+#Creating Factors
+attrition$BusinessTravel <- as.factor(attrition$BusinessTravel)
+attrition$Department <- as.factor(attrition$Department)
+attrition$EducationField <- as.factor(attrition$EducationField)
+attrition$Gender <- as.factor(attrition$Gender)
+attrition$JobRole <- as.factor(attrition$JobRole)
+attrition$MaritalStatus<- as.factor(attrition$MaritalStatus)
+attrition$OverTime <- as.factor(attrition$OverTime)
+attrition$WorkLifeBalance <- as.factor(attrition$WorkLifeBalance)
+attrition$TrainingTimesLastYear <- as.factor(attrition$TrainingTimesLastYear)
+attrition$YearsAtCompany <- as.factor(attrition$YearsAtCompany)
+attrition$YearsInCurrentRole <- as.factor(attrition$YearsInCurrentRole)
+attrition$YearsSinceLastPromotion <- as.factor(attrition$YearsSinceLastPromotion)
+attrition$YearsWithCurrManager <- as.factor(attrition$YearsWithCurrManager)
+
+head(attrition)
+
+```
+
+```{r, cache = TRUE}
+#Graphing the data
+attrition %>% keep(is.numeric)%>% cor %>% corrplot("upper", addCoef.col = "black", number.digits = 2,
+number.cex = 0.5, method="square",
+order="hclust",
+title="Variable Corr Heatmap",
+tl.srt=45, tl.cex = 0.8)
+```
+
+T
+```{r, cache = TRUE}
+##Looking at the variables
+##NEED TO CLEAN UP SECONDARY GRAPHICS BASED ON CORRELATION TESTS ABOVE
+##Continuous
+#AGE
+a1 <- attrition %>% ggplot(aes(x=Age)) + geom_bar(aes(color = Attrition, fill=Attrition))
+a2 <- attrition %>% ggplot(aes(x=Attrition, y=Age)) + geom_boxplot()
+
+#Distance from Home
+a3 <- attrition %>% ggplot(aes(x=DistanceFromHome)) + geom_bar(aes(color = Attrition, fill=Attrition))
+a4 <- attrition %>% ggplot(aes(x=Attrition, y=DistanceFromHome)) + geom_boxplot()
+
+#Monthly Rate
+a5 <- attrition %>% ggplot(aes(x=MonthlyIncome)) + geom_bar(aes(color = Attrition, fill=Attrition))
+a6 <- attrition %>% ggplot(aes(x=Attrition, y=MonthlyIncome)) + geom_boxplot()
+
+#Years at company
+a7 <- attrition %>% ggplot(aes(x=YearsAtCompany)) + geom_bar(aes(color = Attrition, fill=Attrition))
+a8 <- attrition %>% ggplot(aes(x=Attrition, y=YearsAtCompany)) + geom_boxplot()
+
+#SAlary 
+#Job Level
+a24 <- attrition %>% ggplot(aes(x=MonthlyIncome, y=JobLevel)) + geom_point(aes(color = MonthlyIncome))
+
+#Years w Manager
+a26 <- attrition %>% ggplot(aes(x=MonthlyIncome, y=YearsWithCurrManager)) + geom_point(aes(color = MonthlyIncome))
+
+#Total years
+a28 <- attrition %>% ggplot(aes(x=MonthlyIncome, y=TotalWorkingYears)) + geom_point(aes(color = MonthlyIncome))
+
+#Distance from Home
+a30 <- attrition %>% ggplot(aes(x=MonthlyIncome, y=DistanceFromHome)) + geom_point(aes(color = MonthlyIncome))
+
+##Categorical
+a9 <- attrition %>% ggplot(aes(Department, Attrition,  fill=Attrition)) + geom_col() + coord_flip()
+a10 <- attrition %>% ggplot(aes(Education, Attrition,  fill=Attrition)) + geom_col()
+a11 <- attrition %>% ggplot(aes(EducationField, Attrition,  fill=Attrition)) + geom_col() + coord_flip()
+a12 <- attrition %>% ggplot(aes(EnvironmentSatisfaction, Attrition,  fill=Attrition)) + geom_col()
+a13 <- attrition %>% ggplot(aes(Gender, Attrition,  fill=Attrition)) + geom_col()
+a14 <- attrition %>% ggplot(aes(JobInvolvement, Attrition,  fill=Attrition)) + geom_col()
+a15 <- attrition %>% ggplot(aes(JobLevel, Attrition,  fill=Attrition)) + geom_col()
+a16 <- attrition %>% ggplot(aes(JobRole, Attrition,  fill=Attrition)) + geom_col() + coord_flip()
+a17 <- attrition %>% ggplot(aes(JobSatisfaction, Attrition,  fill=Attrition)) + geom_col()
+a18 <- attrition %>% ggplot(aes(MaritalStatus, Attrition,  fill=Attrition)) + geom_col()
+a19 <- attrition %>% ggplot(aes(NumCompaniesWorked, Attrition,  fill=Attrition)) + geom_col()
+a20 <- attrition %>% ggplot(aes(OverTime, Attrition,  fill=Attrition)) + geom_col()
+a21 <- attrition %>% ggplot(aes(PerformanceRating, Attrition,  fill=Attrition)) + geom_col()
+a22 <- attrition %>% ggplot(aes(RelationshipSatisfaction, Attrition,  fill=Attrition)) + geom_col()
+a23 <- attrition %>% ggplot(aes(StockOptionLevel, Attrition,  fill=Attrition)) + geom_col()
+
+ggarrange(a1, a2, a3, a4, a5, a6, a7, a8, ncol = 4, nrow=2)
+ggarrange(a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, ncol = 4, nrow = 4)
+ggarrange(a28, a24, a26, a30, ncol = 2, nrow=2)
+```
+
+```{r, cache = TRUE}
+#looking at the correlation plots of continuous variables, specific ones can be excluded
+#All of the "years" metrics show strong correlation.  
+#All of the rates data are duplicates of eachother
+attrition$YearsSinceLastPromotion <- NULL
+attrition$YearsWithCurrManager <- NULL
+attrition$YearsInCurrentRole <- NULL
+attrition$DailyRate <- NULL
+attrition$HourlyRate <- NULL
+attrition$MonthlyRate <- NULL
+summary(attrition)
+```
+
+```{r, cache = TRUE}
+#fit full logistic model for variable selection assistance
+
+fullmodel <- glm(Attrition~., family= binomial(link = "logit"), data = attrition)
+summary(fullmodel)
+
+
+#refine full model through fwd, bwd and stepwise methods
+backward_model <- step(fullmodel)
+forward_model <- step(fullmodel, direction = 'forward', k=2)
+stepwise_model <- step(fullmodel, direction = 'both', k=2)
+
+#Business Travel, Distance from home, job involvement, job satisfaction, marital status, # of comapanies, work life balance and overtime all are indicated as significant
+```
+
+
+```{r}
+#Naive Bayes
+
+model = naiveBayes(attrition[,c(4,6,8,9,12,15,16,17,18,19,22,24,26,27)],attrition$Attrition,laplace = 1)
+
+table(predict(model,attrition[,c(4,6,8,9,12,15,16,17,18,19,22,24,26,27)]),attrition$Attrition)
+
+CM = confusionMatrix(table(predict(model,attrition[,c(4,6,8,9,12,15,16,17,18,19,22,24,26,27)]),attrition$Attrition))
+
+CM
+
+
+```
+
+
+
+```{r}
+prediction <- data.frame(predict(model,attrition.test[,c(4,6,8,9,12,15,16,17,18,19,21,23,25,26)]),(attrition.test$Attrition))
+attrition.test$attrition <- data.frame(prediction$ID, prediction$Attrition)
+write.csv(attrition_prediction, file = "Attrition_prediction.csv")
+```
+
+
+```{r}
+#LR - keeping numeric
+LR <- salary %>% keep(is.numeric)
+####Linear Regression Predictive Model####
+trainIndices = sample(seq(1:length(LR$MonthlyIncome)),round(.7*length(LR$MonthlyIncome)))
+trainLR = LR[trainIndices,]
+testLR = LR[-trainIndices,]
+fit1 <- lm(MonthlyIncome~DistanceFromHome + TotalWorkingYears + YearsWithCurrManager + JobLevel, data=LR)
+Income <- predict(fit1, testLR)
+###Find p-values, Adjusted R^2 values, and other summary statisitics.####
+summary(fit1)
+confint(fit1)
+####Salary Predictions####
+####Read Data####
+Income <- read.csv(file.choose(), header = TRUE)
+####Predict Test Data from Model####
+Income$MonthlyIncome <- predict(fit1, Income)
+write.csv(Income, file = "Income_prediction.csv")
+```
